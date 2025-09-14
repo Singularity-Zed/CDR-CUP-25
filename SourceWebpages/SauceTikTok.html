@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ClipStream — TikTok‑Style</title>
+  <style>
+    /*
+      ClipStream — a TikTok‑style vertical video feed demo
+      ----------------------------------------------------
+      ▪ 100% client‑side (no server). Your local files never leave your device.
+      ▪ Add videos by uploading files or pasting a direct video URL.
+      ▪ Autoplay the in‑view video, pause others. Scroll‑snap for that app feel.
+      ▪ Faux UI (no trademarks). For personal/demo use only.
+    */
+
+    :root{
+      --bg:#0f0f10;          /* app background */
+      --panel:#151518;       /* panels / overlays */
+      --text:#f6f6f6;        /* primary text */
+      --muted:#9aa0a6;       /* muted text */
+      --accent:#ff2d55;      /* like / accent */
+      --ok:#22c55e;          /* success */
+      --warn:#f59e0b;        /* warning */
+      --danger:#ef4444;      /* error */
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height:100%; }
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text);
+      overflow: hidden; /* we'll scroll inside #feed */
+    }
+
+    /* Top bar */
+    .topbar{
+      position: fixed; inset: 0 0 auto 0; height: 56px; display: flex; align-items: center; gap: 12px;
+      padding: 0 14px; background: linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,0)); z-index: 50;
+      pointer-events: none; /* let clicks go through except interactive children */
+    }
+    .brand{ font-weight: 800; letter-spacing: .3px; pointer-events: auto; }
+    .brand .dot{ color: var(--accent); }
+    .search{ flex:1; display:flex; align-items:center; gap:8px; pointer-events: auto; }
+    .search input{
+      width:100%; height:36px; border-radius:999px; border:1px solid rgba(255,255,255,.15);
+      background: rgba(0,0,0,.35); color: var(--text); padding: 0 12px; outline: none;
+    }
+    .btn{
+      appearance: none; border: none; border-radius: 999px; padding: 8px 14px; font-weight: 600;
+      background: rgba(255,255,255,.12); color: white; cursor: pointer; pointer-events: auto;
+      transition: transform .06s ease, background .2s ease;
+    }
+    .btn:active{ transform: translateY(1px) scale(.98); }
+    .btn.primary{ background: var(--accent); }
+
+    /* Feed container */
+    #feed{
+      position: fixed; inset: 0; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Empty state */
+    .empty{
+      position: absolute; inset: 0; display:grid; place-items:center; padding: 24px; text-align:center;
+      gap: 14px; background: radial-gradient(1200px 500px at 50% 30%, rgba(255,45,85,.12), rgba(0,0,0,0));
+    }
+    .empty .panel{ background: rgba(255,255,255,.06); padding: 18px 22px; border-radius: 16px; box-shadow: var(--shadow); }
+
+    /* Post */
+    .post{ position: relative; height: 100svh; width: 100%; scroll-snap-align: start; }
+    .player{
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000;
+    }
+
+    /* Right actions */
+    .actions{
+      position: absolute; right: 10px; bottom: 110px; display:flex; flex-direction:column; align-items:center; gap:16px; z-index: 10;
+    }
+    .action{
+      width: 54px; height: 54px; border-radius: 999px; display:grid; place-items:center; background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.12); cursor: pointer; user-select: none; transition: transform .06s ease;
+    }
+    .action:active{ transform: translateY(1px) scale(.96); }
+    .action .count{ display:block; font-size: 12px; margin-top: 6px; color: var(--muted); text-align:center; }
+    .action.heart.active{ background: rgba(255,45,85,.22); border-color: rgba(255,45,85,.6); }
+
+    /* Bottom meta/caption */
+    .meta{
+      position: absolute; left: 12px; right: 94px; bottom: 30px; display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 12px; z-index: 10;
+    }
+    .avatar{ width: 44px; height: 44px; border-radius: 999px; border: 2px solid rgba(255,255,255,.55); background: rgba(255,255,255,.25); }
+    .caption{ overflow: hidden; }
+    .caption h4{ margin:0; font-size: 14px; opacity:.95; }
+    .caption p{ margin: 4px 0 0 0; font-size: 13px; color: rgba(255,255,255,.9); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .music{ display:block; margin-top:6px; font-size:12px; color: var(--muted); text-decoration:none; }
+    .follow{ border: 1px solid rgba(255,255,255,.5); background: rgba(0,0,0,.3); color:#fff; border-radius: 999px; padding: 6px 12px; cursor:pointer; }
+
+    /* Mute toggle */
+    .muteBtn{
+      position: absolute; right: 10px; bottom: 30px; z-index: 10; background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.12); border-radius: 999px; padding: 8px 10px; cursor:pointer;
+    }
+
+    /* Floating Upload button (for easy access) */
+    .fab{
+      position: fixed; left: 50%; transform: translateX(-50%); bottom: 24px; z-index: 60; box-shadow: var(--shadow);
+    }
+
+    /* Sheet/Modal */
+    .sheet{ position: fixed; inset: auto 0 0 0; background: var(--panel); border-radius: 16px 16px 0 0; box-shadow: var(--shadow); padding: 16px; z-index: 100; transform: translateY(105%); transition: transform .25s ease; }
+    .sheet.open{ transform: translateY(0); }
+    .sheet h2{ margin: 4px 0 12px 8px; font-size: 18px; }
+    .row{ display:flex; gap:10px; align-items:center; margin: 10px 0; }
+    .row input[type="url"], .row input[type="text"]{ flex: 1; height: 40px; border-radius: 10px; border:1px solid rgba(255,255,255,.18); background: #0d0d0f; color: #fff; padding: 0 10px; }
+    .note{ font-size: 12px; color: var(--muted); margin-left: 2px; }
+
+    /* Toast */
+    .toast{ position: fixed; left: 50%; transform: translateX(-50%); bottom: 90px; background: rgba(0,0,0,.82); color: #fff; padding: 10px 14px; border-radius: 10px; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
+    .toast.show{ opacity: 1; transform: translateX(-50%) translateY(-6px); }
+
+    /* Desktop niceties */
+    @media (min-width: 900px){
+      .post{ width: 420px; margin: 0 auto; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
+      #feed{ background: radial-gradient(800px 400px at 50% 20%, rgba(255,255,255,.06), transparent); }
+      .topbar{ justify-content:center; }
+      .topbar .search{ max-width: 560px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar" aria-hidden="false">
+    <div class="brand">Clip<span class="dot">●</span>Stream</div>
+    <div class="search"><input placeholder="Search (mock) — this is a demo UI" /></div>
+    <button class="btn" id="openUploader" title="Upload or link a video">＋ Upload</button>
+  </div>
+
+  <main id="feed" tabindex="0" aria-label="Vertical video feed">
+    <div id="emptyState" class="empty">
+      <div class="panel">
+        <h2 style="margin:0 0 6px 0">Welcome 👋</h2>
+        <p style="margin:0 0 10px 0; color:var(--muted)">Add a real video by uploading a file or pasting a direct <b>.mp4</b> / <b>.webm</b> URL. The in‑view clip autoplays; others pause. All client‑side.</p>
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
+          <button class="btn primary" id="startUpload">Upload a video</button>
+          <button class="btn" id="startLink">Paste a URL</button>
+        </div>
+        <p class="note" style="margin-top:12px">NOT_TikTok...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Floating add button (mobile friendly) -->
+  <button class="btn primary fab" id="fabAdd">＋ Add</button>
+
+  <!-- Bottom Sheet: Uploader / Linker -->
+  <section id="uploader" class="sheet" aria-label="Add videos panel" aria-hidden="true">
+    <h2>Add videos</h2>
+    <div class="row">
+      <input type="file" id="fileInput" accept="video/*" multiple />
+      <button class="btn" id="pickFiles">Choose files</button>
+    </div>
+    <div class="row">
+      <input type="url" id="urlInput" placeholder="https://example.com/video.mp4" />
+      <button class="btn primary" id="addUrl">Add URL</button>
+    </div>
+    <div class="row" style="justify-content: space-between; align-items: flex-start; gap:14px">
+      <span class="note">Tip: use direct links ending in <b>.mp4</b> or <b>.webm</b>. Some sites block embedding (CORS).</span>
+      <div style="display:flex; gap:8px">
+        <button class="btn" id="closeUploader">Done</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+  (function(){
+    const feed = document.getElementById('feed');
+    const emptyState = document.getElementById('emptyState');
+    const uploader = document.getElementById('uploader');
+    const fileInput = document.getElementById('fileInput');
+    const urlInput = document.getElementById('urlInput');
+    const pickFilesBtn = document.getElementById('pickFiles');
+    const addUrlBtn = document.getElementById('addUrl');
+    const openUploaderBtn = document.getElementById('openUploader');
+    const closeUploaderBtn = document.getElementById('closeUploader');
+    const startUploadBtn = document.getElementById('startUpload');
+    const startLinkBtn = document.getElementById('startLink');
+    const fabAddBtn = document.getElementById('fabAdd');
+    const toast = document.getElementById('toast');
+
+    const STORAGE_KEY = 'clipstream_urls_v1'; // we persist URL clips only (not local files)
+
+    function showToast(msg){
+      toast.textContent = msg; toast.classList.add('show');
+      clearTimeout(showToast._t); showToast._t = setTimeout(()=> toast.classList.remove('show'), 2000);
+    }
+
+    function openSheet(){ uploader.classList.add('open'); uploader.setAttribute('aria-hidden','false'); }
+    function closeSheet(){ uploader.classList.remove('open'); uploader.setAttribute('aria-hidden','true'); }
+
+    openUploaderBtn.addEventListener('click', openSheet);
+    fabAddBtn.addEventListener('click', openSheet);
+    closeUploaderBtn.addEventListener('click', closeSheet);
+    pickFilesBtn.addEventListener('click', ()=> fileInput.click());
+    startUploadBtn?.addEventListener('click', ()=> { openSheet(); setTimeout(()=>fileInput.click(), 50); });
+    startLinkBtn?.addEventListener('click', ()=> { openSheet(); urlInput.focus(); });
+
+    // Validate likely playable video URLs
+    function isLikelyVideoURL(u){
+      try{ const ext = new URL(u).pathname.split('.').pop().toLowerCase();
+        return ['mp4','webm','ogv','ogg'].includes(ext);
+      }catch(e){ return false; }
+    }
+
+    function hideEmptyState(){ if(emptyState) emptyState.style.display = 'none'; }
+
+    function addPost({ src, origin='url', caption='' }){
+      hideEmptyState();
+      const post = document.createElement('section');
+      post.className = 'post';
+      post.dataset.origin = origin;
+
+      const video = document.createElement('video');
+      video.className = 'player';
+      video.src = src; // may be objectURL or remote URL
+      video.muted = true; video.loop = true; video.playsInline = true; video.preload = 'metadata';
+
+      // Actions (right side)
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+
+      const like = document.createElement('div'); like.className='action heart'; like.innerHTML = '❤<span class="count">0</span>';
+      const comment = document.createElement('div'); comment.className='action'; comment.innerHTML = '💬<span class="count">0</span>';
+      const share = document.createElement('div'); share.className='action'; share.innerHTML = '↗<span class="count"></span>';
+
+      actions.append(like, comment, share);
+
+      // Bottom meta
+      const meta = document.createElement('div'); meta.className = 'meta';
+      const avatar = document.createElement('div'); avatar.className='avatar';
+      const captionBox = document.createElement('div'); captionBox.className='caption';
+      captionBox.innerHTML = `<h4>@you</h4><p>${escapeHTML(caption || (origin==='file' ? 'Local upload' : 'Linked video'))}</p><a class="music" href="#" onclick="return false;">♫ Original audio</a>`;
+      const follow = document.createElement('button'); follow.className='follow'; follow.textContent = 'Follow';
+      meta.append(avatar, captionBox, follow);
+
+      // Mute toggle
+      const muteBtn = document.createElement('button'); muteBtn.className='muteBtn'; muteBtn.textContent = '🔇';
+
+      // Wire up interactions
+      video.addEventListener('click', ()=> video.paused ? video.play().catch(()=>{}) : video.pause());
+
+      muteBtn.addEventListener('click', ()=>{
+        video.muted = !video.muted; muteBtn.textContent = video.muted ? '🔇' : '🔊';
+      });
+
+      like.addEventListener('click', ()=>{
+        const wasActive = like.classList.toggle('active');
+        const countEl = like.querySelector('.count');
+        const n = parseInt(countEl.textContent||'0',10) + (wasActive?1:-1);
+        countEl.textContent = Math.max(0,n);
+      });
+
+      share.addEventListener('click', async ()=>{
+        try{
+          if(navigator.share && origin==='url'){
+            await navigator.share({ title:'Check this clip', url: src });
+          } else if(origin==='url'){
+            await navigator.clipboard.writeText(src);
+            showToast('Link copied');
+          } else {
+            showToast('Local files have no public URL to share');
+          }
+        }catch(e){ showToast('Could not share'); }
+      });
+
+      post.append(video, actions, meta, muteBtn);
+
+      // Insert newest at top (after any existing topbar spacing)
+      feed.prepend(post);
+
+      // Observe for autoplay behavior
+      io.observe(post);
+
+      return post;
+    }
+
+    function escapeHTML(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+    // Handle file uploads
+    fileInput.addEventListener('change', (ev)=>{
+      const files = Array.from(ev.target.files||[]).filter(f=> f.type.startsWith('video/'));
+      if(!files.length){ showToast('No video files selected'); return; }
+      files.forEach(f=>{
+        const url = URL.createObjectURL(f);
+        addPost({ src: url, origin:'file', caption: f.name });
+      });
+      closeSheet();
+      setTimeout(()=> scrollToTop(), 50);
+      showToast(files.length + (files.length>1?' videos added':' video added'));
+      // Clear selection so choosing same files later still fires change
+      fileInput.value = '';
+    });
+
+    // Handle add by URL
+    addUrlBtn.addEventListener('click', ()=>{
+      const u = (urlInput.value||'').trim();
+      if(!isLikelyVideoURL(u)) { showToast('Use a direct .mp4 / .webm URL'); urlInput.focus(); return; }
+      addPost({ src: u, origin:'url', caption: u });
+      persistUrl(u);
+      urlInput.value=''; closeSheet();
+      setTimeout(()=> scrollToTop(), 50);
+      showToast('Linked video added');
+    });
+
+    function scrollToTop(){ feed.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+    // Drag & drop
+    window.addEventListener('dragover', e=> { e.preventDefault(); });
+    window.addEventListener('drop', e=>{
+      e.preventDefault();
+      const vids = Array.from(e.dataTransfer.files||[]).filter(f=> f.type.startsWith('video/'));
+      if(!vids.length) { showToast('Drop video files here'); return; }
+      vids.forEach(f=> addPost({ src: URL.createObjectURL(f), origin:'file', caption: f.name }));
+      showToast(vids.length + (vids.length>1?' videos added':' video added'));
+    });
+
+    // IntersectionObserver to control playback of in‑view post
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        const post = entry.target;
+        const video = post.querySelector('video');
+        if(!video) return;
+        if(entry.isIntersecting && entry.intersectionRatio > 0.7){
+          // Pause other videos first
+          document.querySelectorAll('video').forEach(v=>{ if(v!==video) v.pause(); });
+          video.play().catch(()=>{});
+        }else{
+          video.pause();
+        }
+      });
+    }, { threshold:[0, .7, 1] });
+
+    // Persist / Restore URL posts
+    function persistUrl(u){
+      try{
+        const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        if(!list.includes(u)) list.unshift(u);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0,50))); // cap
+      }catch(e){ /* ignore */ }
+    }
+    function restoreUrls(){
+      try{
+        const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        if(list.length){ hideEmptyState(); list.forEach(u=> addPost({ src: u, origin:'url', caption: u })); }
+      }catch(e){ /* ignore */ }
+    }
+
+    // Kick things off
+    restoreUrls();
+
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chirper — a fake Twitter‑like page</title>
+  <meta name="description" content="A self‑contained, Twitter‑style demo page with a feed, composer, likes, and dark mode." />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-soft: #f3f4f6; /* light slate */
+      --panel: #ffffff;
+      --text: #0f172a; /* slate-900 */
+      --text-dim: #475569; /* slate-600 */
+      --muted: #94a3b8; /* slate-400 */
+      --primary: #1d9bf0; /* twitter-ish blue */
+      --primary-strong: #1580c7;
+      --border: #e2e8f0;
+      --like: #f91880;
+      --repost: #00ba7c;
+    }
+    .dark {
+      --bg: #0b1220;
+      --bg-soft: #0f1629;
+      --panel: #0f1629;
+      --text: #e5e7eb;
+      --text-dim: #9ca3af;
+      --muted: #6b7280;
+      --primary: #1d9bf0;
+      --primary-strong: #1281d1;
+      --border: #1f2937;
+      --like: #ff4aa3;
+      --repost: #00d98b;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: var(--bg);
+      color: var(--text);
+    }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Layout */
+    .app {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 640px) 360px;
+      gap: 1rem;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 90px minmax(0, 1fr) 320px; }
+      .nav .label { display:none; }
+    }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 80px minmax(0, 1fr); }
+      .right { display:none; }
+    }
+
+    .left, .center, .right {
+      min-height: 100vh;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    /* Left Nav */
+    .nav { position: sticky; top: 0; padding: 1rem 0; }
+    .brand { display: flex; align-items: center; gap: .75rem; padding: .5rem .75rem; margin-bottom: .25rem; }
+    .brand .logo { width: 28px; height: 28px; display:grid; place-items:center; border-radius: 8px; background: var(--primary); color:#fff; font-weight: 800; }
+    .nav a.navlink {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .6rem .75rem; border-radius: 999px; font-size: 1.05rem; color: var(--text);
+    }
+    .nav a.navlink:hover { background: var(--bg-soft); }
+    .nav svg { width: 22px; height: 22px; fill: currentColor; color: var(--text); }
+    .tweet-btn { display:block; margin: .75rem .75rem 1rem; padding: .8rem 1rem; text-align:center; background: var(--primary); color:#fff; border:none; border-radius: 999px; font-weight: 700; cursor:pointer; }
+    .tweet-btn:disabled { opacity: .6; cursor:not-allowed; }
+    .nav-footer { margin-top: 1rem; padding: .5rem .75rem; display:flex; flex-direction:column; gap:.5rem; }
+    .toggle { display:flex; align-items:center; gap:.5rem; }
+    .toggle input { width:44px; height:24px; appearance:none; background:var(--bg-soft); border:1px solid var(--border); border-radius:999px; position:relative; cursor:pointer; }
+    .toggle input:checked { background: var(--primary); }
+    .toggle input::after { content:""; width:18px; height:18px; background:#fff; border-radius: 999px; position:absolute; top:2px; left:2px; transition: all .2s ease; }
+    .toggle input:checked::after { transform: translateX(20px); }
+
+    /* Center Feed */
+    .timeline { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+    .timeline .sticky-top { position: sticky; top: 0; backdrop-filter: blur(8px); background: color-mix(in srgb, var(--panel) 85%, transparent); z-index: 5; }
+    .timeline .titlebar { padding: .9rem 1rem; font-weight: 800; font-size: 1.25rem; }
+
+    /* Composer */
+    .composer { display:flex; gap:.75rem; padding: 1rem; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .avatar { width: 44px; height: 44px; border-radius: 999px; background: linear-gradient(135deg, var(--primary), #7c3aed); color:#fff; display:grid; place-items:center; font-weight: 800; }
+    .composer textarea {
+      width: 100%; min-height: 72px; resize: none; border:none; outline:none; font: inherit; background: transparent; color: var(--text);
+    }
+    .composer .controls { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+    .chips { display:flex; gap:.5rem; align-items:center; }
+    .chip { display:inline-flex; align-items:center; gap:.35rem; padding:.4rem .6rem; border:1px dashed var(--border); border-radius:999px; font-size:.85rem; color:var(--text-dim); cursor:default; }
+    .chip input[type=file] { display:none; }
+    .counter { font-variant-numeric: tabular-nums; color: var(--text-dim); }
+    .counter.danger { color: #ef4444; }
+    .chirp { background: var(--primary); color:#fff; border:none; padding:.6rem 1rem; border-radius:999px; font-weight:700; cursor:pointer; }
+
+    /* Post */
+    .post { display:flex; gap:.75rem; padding: 1rem; border-bottom: 1px solid var(--border); }
+    .post .body { flex:1; min-width:0; }
+    .post header { display:flex; align-items:center; gap:.5rem; font-weight:700; }
+    .post header .meta { color: var(--text-dim); font-weight: 500; }
+    .post p { margin:.25rem 0 .5rem; line-height: 1.5; }
+    .post .image { border-radius: 16px; border:1px solid var(--border); width:100%; height:auto; display:block; }
+    .actions { display:flex; justify-content:space-between; max-width: 520px; margin-top:.35rem; }
+    .action { display:inline-flex; align-items:center; gap:.35rem; padding:.35rem .5rem; border-radius:999px; color: var(--text-dim); background:transparent; border:none; cursor:pointer; }
+    .action:hover { background: var(--bg-soft); }
+    .action svg { width:18px; height:18px; }
+    .action.like.active { color: var(--like); }
+    .action.repost.active { color: var(--repost); }
+
+    /* Right */
+    .search { padding: .75rem; position: sticky; top: 0; z-index: 4; }
+    .search input { width:100%; padding:.7rem 1rem; border-radius:999px; border:1px solid var(--border); outline:none; background: var(--bg-soft); color: var(--text); }
+    .widget { margin: .5rem 0; padding: .75rem 0; }
+    .widget h3 { font-size:1.2rem; margin: 0 0 .5rem 0; padding: 0 .75rem; }
+    .trends, .follows { display:flex; flex-direction:column; }
+    .trend, .follow { padding:.75rem; display:flex; gap:.75rem; align-items:center; }
+    .trend:hover, .follow:hover { background: var(--bg-soft); }
+    .trend small { color:var(--muted); display:block; }
+    .follow .who { flex:1; min-width:0; }
+    .follow .who strong { display:block; }
+    .follow button { border:1px solid var(--border); border-radius:999px; padding:.4rem .75rem; background:transparent; cursor:pointer; }
+
+    /* Helpers */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- LEFT NAV -->
+    <aside class="left">
+      <nav class="nav">
+        <div class="brand" aria-label="Chirper home">
+          <div class="logo" aria-hidden="true">𝕔</div>
+          <div class="label" style="font-weight:800; font-size:1.1rem;">Chirper</div>
+        </div>
+        <a class="navlink" href="#" aria-current="page">
+          <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9v9a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+          <span class="label">Home</span>
+        </a>
+        <a class="navlink" href="#">
+          <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.977 12.051l4.236 4.236-1.414 1.414-4.236-4.236A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
+          <span class="label">Explore</span>
+        </a>
+        <a class="navlink" href="#">
+          <svg viewBox="0 0 24 24"><path d="M12 22a2 2 0 0 1-2-2h4a2 2 0 0 1-2 2zm8-6V9a8 8 0 1 0-16 0v7l-2 2v1h20v-1l-2-2z"/></svg>
+          <span class="label">Notifications</span>
+        </a>
+        <a class="navlink" href="#">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v1l10 6 10-6V6a2 2 0 0 0-2-2zm0 6.236l-8 4.8-8-4.8V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10.236z"/></svg>
+          <span class="label">Messages</span>
+        </a>
+        <a class="navlink" href="#">
+          <svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 0 1 1 1v16l-7-3-7 3V4a1 1 0 0 1 1-1z"/></svg>
+          <span class="label">Bookmarks</span>
+        </a>
+        <a class="navlink" href="#">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h10v2H4v-2z"/></svg>
+          <span class="label">Lists</span>
+        </a>
+        <a class="navlink" href="#">
+          <svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/></svg>
+          <span class="label">Profile</span>
+        </a>
+        <button class="tweet-btn" id="sideChirp">Chirp</button>
+        <div class="nav-footer">
+          <label class="toggle" title="Toggle dark mode">
+            <input id="themeToggle" type="checkbox" aria-label="Toggle dark mode" />
+            <span>Dark mode</span>
+          </label>
+          <small style="color:var(--muted)">Demo UI • Not connected</small>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- CENTER FEED -->
+    <main class="center timeline panel" aria-label="Home timeline">
+      <div class="sticky-top">
+        <div class="titlebar">Home</div>
+      </div>
+
+      <section class="composer" aria-label="Create a post">
+        <div class="avatar" aria-hidden="true">MJ</div>
+        <div class="flex-1" style="flex:1; min-width:0;">
+          <label class="sr-only" for="composerText">What is happening?!</label>
+          <textarea id="composerText" maxlength="560" placeholder="What is happening?!" aria-label="Post text"></textarea>
+          <div id="imagePreview" style="display:none; margin:.5rem 0;">
+            <img id="previewImg" alt="Selected image preview" class="image" />
+          </div>
+          <div class="controls">
+            <div class="chips">
+              <label class="chip" for="imgInput" title="Add image">
+                <svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5zm3-1a1 1 0 0 0-1 1v10l3.5-3.5 3 3L17 12l4 4V5a1 1 0 0 0-1-1H7z"/></svg>
+                <span>Image</span>
+                <input id="imgInput" type="file" accept="image/*" />
+              </label>
+              <span class="chip" title="Character limit"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2zm0 2a8 8 0 1 0 0 16A8 8 0 0 0 12 4z"/></svg><span class="counter" id="counter">280</span></span>
+            </div>
+            <button id="chirpBtn" class="chirp" disabled>Chirp</button>
+          </div>
+        </div>
+      </section>
+
+      <div id="feed" role="feed" aria-busy="false">
+        <!-- Preloaded posts -->
+      </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="right">
+      <div class="search panel"><input type="search" placeholder="Search Chirper" aria-label="Search" /></div>
+      <div class="panel widget">
+        <h3>Trends for you</h3>
+        <div class="trends">
+          <div class="trend"><div><small>Trending • Technology</small> <div><strong>#WebDev</strong></div><small>102K posts</small></div></div>
+          <div class="trend"><div><small>Trending • Gaming</small> <div><strong>#IndieGames</strong></div><small>31.1K posts</small></div></div>
+          <div class="trend"><div><small>Trending • Science</small> <div><strong>#SpaceWeather</strong></div><small>8,713 posts</small></div></div>
+        </div>
+      </div>
+      <div class="panel widget">
+        <h3>Who to follow</h3>
+        <div class="follows">
+          <div class="follow">
+            <div class="avatar" aria-hidden="true">JS</div>
+            <div class="who"><strong>JS Nuggets</strong><small style="color:var(--text-dim)">@jsnugs</small></div>
+            <button class="follow-btn" aria-pressed="false">Follow</button>
+          </div>
+          <div class="follow">
+            <div class="avatar" aria-hidden="true">UX</div>
+            <div class="who"><strong>UX Sprouts</strong><small style="color:var(--text-dim)">@uxsprouts</small></div>
+            <button class="follow-btn" aria-pressed="false">Follow</button>
+          </div>
+          <div class="follow">
+            <div class="avatar" aria-hidden="true">AI</div>
+            <div class="who"><strong>AI Playground</strong><small style="color:var(--text-dim)">@ai_play</small></div>
+            <button class="follow-btn" aria-pressed="false">Follow</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <template id="postTemplate">
+    <article class="post" role="article">
+      <div class="avatar" data-avatar>CP</div>
+      <div class="body">
+        <header>
+          <span class="name" data-name>Chirper Person</span>
+          <span class="meta" data-meta>@handle · now</span>
+        </header>
+        <p class="text" data-text>Text goes here…</p>
+        <img class="image" data-image alt="Attached media" style="display:none;"/>
+        <div class="actions" role="group" aria-label="Post actions">
+          <button class="action reply" title="Reply" aria-pressed="false">
+            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l3.58-3.59L10 6l-6 6 6 6 1.41-1.41L7.83 13H20v-2z"/></svg>
+            <span class="count" data-replies>0</span>
+          </button>
+          <button class="action repost" title="Repost" aria-pressed="false">
+            <svg viewBox="0 0 24 24"><path d="M7 7h7V4l5 5-5 5v-3H7V7zm10 10H10v3l-5-5 5-5v3h7v4z"/></svg>
+            <span class="count" data-reposts>0</span>
+          </button>
+          <button class="action like" title="Like" aria-pressed="false">
+            <svg viewBox="0 0 24 24"><path d="M12.1 21.35l-1.1-.99C5.14 15.24 2 12.39 2 8.99 2 6.42 4.42 4 6.99 4c1.74 0 3.41.81 4.51 2.09A6 6 0 0 1 20 8.99c0 3.4-3.14 6.25-8.9 11.37l-1 .99z"/></svg>
+            <span class="count" data-likes>0</span>
+          </button>
+          <button class="action share" title="Share">
+            <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7a3.25 3.25 0 0 0 0-1.39l7-4.11A2.99 2.99 0 1 0 14 5a3 3 0 0 0 .05.52l-7 4.11a3 3 0 1 0 0 4.74l7.05 4.13A3 3 0 1 0 18 16.09z"/></svg>
+            <span class="count" data-shares>0</span>
+          </button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script>
+    (function(){
+      const app = document.getElementById('app');
+      const feed = document.getElementById('feed');
+      const chirpBtn = document.getElementById('chirpBtn');
+      const sideChirp = document.getElementById('sideChirp');
+      const textarea = document.getElementById('composerText');
+      const counter = document.getElementById('counter');
+      const imgInput = document.getElementById('imgInput');
+      const preview = document.getElementById('imagePreview');
+      const previewImg = document.getElementById('previewImg');
+      const themeToggle = document.getElementById('themeToggle');
+      const postTemplate = document.getElementById('postTemplate');
+
+      // --- Theme ---
+      function applyTheme(mode){
+        document.documentElement.classList.toggle('dark', mode === 'dark');
+        themeToggle.checked = mode === 'dark';
+        localStorage.setItem('chirper:theme', mode);
+      }
+      const savedTheme = localStorage.getItem('chirper:theme');
+      applyTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+      themeToggle.addEventListener('change', () => applyTheme(themeToggle.checked ? 'dark' : 'light'));
+
+      // --- Composer ---
+      function updateCounter(){
+        const max = 280; // hard limit like Twitter
+        const len = [...textarea.value].length; // count unicode code points
+        const remaining = max - len;
+        counter.textContent = remaining;
+        counter.classList.toggle('danger', remaining < 0);
+        chirpBtn.disabled = (len === 0 || remaining < 0);
+      }
+      textarea.addEventListener('input', () => {
+        updateCounter();
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(240, textarea.scrollHeight) + 'px';
+      });
+      updateCounter();
+
+      imgInput.addEventListener('change', () => {
+        const file = imgInput.files && imgInput.files[0];
+        if(!file){ preview.style.display='none'; return; }
+        const reader = new FileReader();
+        reader.onload = e => { previewImg.src = e.target.result; preview.style.display='block'; };
+        reader.readAsDataURL(file);
+      });
+
+      function makePost({name, handle, text, avatar, image, likes=0, reposts=0, replies=0}){
+        const node = postTemplate.content.cloneNode(true);
+        const art = node.querySelector('article');
+        art.querySelector('[data-name]').textContent = name;
+        art.querySelector('[data-meta]').textContent = `@${handle} · now`;
+        art.querySelector('[data-text]').textContent = text;
+        art.querySelector('[data-avatar]').textContent = avatar || name.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+        const img = art.querySelector('[data-image]');
+        if(image){ img.src=image; img.style.display='block'; }
+        art.querySelector('[data-likes]').textContent = likes;
+        art.querySelector('[data-reposts]').textContent = reposts;
+        art.querySelector('[data-replies]').textContent = replies;
+        // Attach action handlers
+        art.querySelector('.like').addEventListener('click', function(){ toggleCount(this, '[data-likes]', 'active'); });
+        art.querySelector('.repost').addEventListener('click', function(){ toggleCount(this, '[data-reposts]', 'active'); });
+        art.querySelector('.reply').addEventListener('click', function(){
+          const msg = prompt('Reply (simulated):');
+          if(msg){ const el = this.parentElement.querySelector('[data-replies]'); el.textContent = (+el.textContent||0) + 1; }
+        });
+        art.querySelector('.share').addEventListener('click', function(){
+          navigator.clipboard?.writeText(text).then(()=>{
+            const el = this.parentElement.querySelector('[data-shares]');
+            el.textContent = (+el.textContent||0) + 1;
+            alert('Copied post text to clipboard!');
+          });
+        });
+        return art;
+      }
+
+      function toggleCount(btn, selector, activeClass){
+        const countEl = btn.parentElement.querySelector(selector);
+        const active = btn.classList.toggle(activeClass);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        const current = +countEl.textContent || 0;
+        countEl.textContent = active ? current + 1 : Math.max(0, current - 1);
+      }
+
+      function prependPost(post){ feed.prepend(post); }
+
+      // Seed posts
+      const seed = [
+        { name:'Ava Dev', handle:'avadev', text:'Building a tiny Twitter-like UI in pure HTML/CSS/JS. No frameworks, just vibes. ✨', likes:32, reposts:5, replies:3, image:'' },
+        { name:'Pixel Pine', handle:'pixelpine', text:'Dark mode should be the default. Change my mind.', likes:18, reposts:2, replies:1 },
+        { name:'Coffee Ops', handle:'coffeeops', text:'Deploys ✅\nTests ✅\nCoffee ☕ double ✅', likes:45, reposts:9, replies:4, image:'' },
+        { name:'Design Goblin', handle:'goblinux', text:'Rounded corners + soft borders = happy eyes.', likes:11, reposts:1, replies:0 },
+        { name:'Chirper', handle:'hello', text:'Welcome to the demo! This page is not connected to any service.', likes:7, reposts:0, replies:0 }
+      ];
+      seed.forEach(s => prependPost(makePost(s)));
+
+      function postFromComposer(){
+        const text = textarea.value.trim();
+        if(!text) return;
+        const image = previewImg.src && preview.style.display === 'block' ? previewImg.src : '';
+        prependPost(makePost({ name:'M J', handle:'you', text, avatar:'MJ', image }));
+        textarea.value=''; updateCounter(); textarea.style.height = 'auto';
+        previewImg.src=''; preview.style.display='none'; imgInput.value='';
+      }
+      chirpBtn.addEventListener('click', postFromComposer);
+      sideChirp.addEventListener('click', () => { textarea.focus(); });
+
+      // Follow buttons
+      document.querySelectorAll('.follow-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const on = btn.getAttribute('aria-pressed') === 'true';
+          btn.setAttribute('aria-pressed', on ? 'false' : 'true');
+          btn.textContent = on ? 'Follow' : 'Following';
+        });
+      });
+
+      // Enable chirp when typing
+      textarea.addEventListener('keydown', (e) => {
+        if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'enter' && !chirpBtn.disabled){
+          postFromComposer();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
