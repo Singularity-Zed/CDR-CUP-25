@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SaucyTUBE — Local YouTube‑style Uploader</title>
+  <style>
+    :root{
+      --bg:#0f0f0f; --elev:#1a1a1a; --muted:#888; --text:#fff; --accent:#e11d48; --accent-2:#22c55e; --border:#262626;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif}
+    a{color:inherit}
+    .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:.75rem;padding:.5rem .75rem;background:#0b0b0b;border-bottom:1px solid var(--border)}
+    .logo{display:flex;align-items:center;gap:.5rem;font-weight:700;letter-spacing:.3px}
+    .logo svg{width:26px;height:26px}
+    .search{flex:1;display:flex;gap:.5rem;max-width:900px;margin:0 auto}
+    .search input{flex:1;background:var(--elev);border:1px solid var(--border);color:var(--text);padding:.6rem .8rem;border-radius:999px}
+    .search button{background:var(--elev);border:1px solid var(--border);padding:.55rem .9rem;border-radius:999px;cursor:pointer}
+    .btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--accent);color:#fff;border:none;padding:.6rem .9rem;border-radius:999px;cursor:pointer;font-weight:600}
+    .btn.secondary{background:var(--elev);border:1px solid var(--border);color:#fff}
+    .layout{display:grid;grid-template-columns:250px 1fr;gap:1rem;padding:1rem}
+    @media (max-width:900px){.layout{grid-template-columns:1fr}}
+    .side{position:sticky;top:64px;height:calc(100dvh - 64px);padding:.5rem;background:transparent}
+    .nav{display:grid;gap:.25rem}
+    .nav a{padding:.65rem .75rem;border-radius:.6rem;color:#ddd;text-decoration:none;display:flex;align-items:center;gap:.6rem}
+    .nav a:hover,.nav a.active{background:var(--elev)}
+
+    .content{display:grid;gap:1rem}
+    .drop{border:2px dashed var(--border);border-radius:1rem;padding:1.2rem;background:linear-gradient(180deg,#121212,#0e0e0e)}
+    .drop.drag{border-color:var(--accent);box-shadow:0 0 0 4px #e11d4822}
+    .drop .inner{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .drop .msg{flex:1;min-width:230px}
+    .drop .msg h2{margin:.2rem 0 .2rem;font-size:1.1rem}
+    .drop .msg p{margin:.2rem 0;color:#bbb;font-size:.95rem}
+
+    .grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1rem}
+    @media (max-width:1400px){.grid{grid-template-columns:repeat(4,1fr)}}
+    @media (max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
+    @media (max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:520px){.grid{grid-template-columns:1fr}}
+
+    .card{background:var(--elev);border:1px solid var(--border);border-radius:.8rem;overflow:hidden;display:flex;flex-direction:column}
+    .thumb{position:relative;background:#0b0b0b;aspect-ratio:16/9;display:block;width:100%;overflow:hidden}
+    .thumb img,.thumb video{width:100%;height:100%;object-fit:cover;display:block}
+    .duration{position:absolute;right:.5rem;bottom:.5rem;background:#000c;color:#fff;padding:.15rem .4rem;border-radius:.3rem;font-size:.8rem}
+    .card .body{padding:.6rem .75rem}
+    .title{font-weight:600;line-height:1.2}
+    .meta{font-size:.85rem;color:#aaa;margin-top:.2rem}
+
+    .empty{border:1px dashed var(--border);border-radius:.8rem;padding:2rem;text-align:center;color:#bbb}
+
+    .player{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000a;backdrop-filter:saturate(140%) blur(4px);z-index:100}
+    .player.active{display:flex}
+    .player .box{width:min(1100px,95vw);max-height:90vh;background:var(--elev);border:1px solid var(--border);border-radius:1rem;overflow:hidden;display:grid;grid-template-rows:auto 1fr auto}
+    .player header{display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;border-bottom:1px solid var(--border)}
+    .player header .grow{flex:1;font-weight:600}
+    .player video{width:100%;height:100%;background:#000}
+    .player footer{display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.6rem .75rem;border-top:1px solid var(--border)}
+
+    .toasts{position:fixed;bottom:1rem;right:1rem;display:grid;gap:.5rem;z-index:200}
+    .toast{background:#1f2937;color:#fff;border:1px solid #334155;padding:.55rem .75rem;border-radius:.6rem;box-shadow:0 8px 30px #0006;animation:pop .2s ease}
+    @keyframes pop{from{transform:translateY(6px);opacity:.001}to{transform:translateY(0);opacity:1}}
+
+    .pill{background:#111827;border:1px solid var(--border);padding:.35rem .6rem;border-radius:999px;color:#ddd;font-size:.85rem}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo" title="uTube">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="2" y="3" width="20" height="18" rx="4" fill="#ef4444"/>
+        <path d="M10 9v6l5-3-5-3Z" fill="#fff"/>
+      </svg>
+      <span>uTube</span>
+    </div>
+    <div class="search">
+      <input id="q" type="search" placeholder="Search your uploads…" aria-label="Search" />
+      <button id="clearBtn" title="Clear search" aria-label="Clear search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6 6 18" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <button id="uploadBtn" class="btn" aria-label="Upload videos">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16V4m0 0 4 4m-4-4-4 4M4 20h16" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      Upload
+    </button>
+    <input id="fileInput" class="hidden" type="file" accept="video/*" multiple />
+  </header>
+
+  <div class="layout">
+    <aside class="side">
+      <nav class="nav" aria-label="Primary">
+        <a href="#" data-filter="all" class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 10.75 12 4l9 6.75V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.25Z" stroke="#bbb" stroke-width="1.5"/></svg> Home</a>
+        <a href="#" data-filter="recent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 8v5l3 2" stroke="#bbb" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="8" stroke="#bbb" stroke-width="1.5"/></svg> Recent</a>
+        <a href="#" data-filter="large"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="7" width="18" height="10" rx="2" stroke="#bbb" stroke-width="1.5"/><path d="M7 17V7m10 10V7" stroke="#bbb" stroke-width="1.5"/></svg> Large files</a>
+        <a href="#" data-filter="short"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="6" width="16" height="12" rx="2" stroke="#bbb" stroke-width="1.5"/><path d="M9 12h6" stroke="#bbb" stroke-width="1.5" stroke-linecap="round"/></svg> Short clips</a>
+        <div style="height:.5rem"></div>
+        <a href="#" id="exportBtn" class="secondary"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16V4m0 0 4 4m-4-4-4 4" stroke="#bbb" stroke-width="1.5" stroke-linecap="round"/><rect x="4" y="12" width="16" height="8" rx="2" stroke="#bbb" stroke-width="1.5"/></svg> Export titles</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <section class="drop" id="drop">
+        <div class="inner">
+          <button class="btn" id="pickBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16V4m0 0 4 4m-4-4-4 4M4 20h16" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+            Select videos
+          </button>
+          <div class="msg">
+            <h2>Upload videos (client‑side only)</h2>
+            <p>Drag & drop files here or click <span class="pill">Select videos</span>. Your videos are stored <strong>locally in your browser</strong> with IndexedDB — nothing is uploaded to a server.</p>
+          </div>
+          <div class="pill" id="stats">0 videos</div>
+        </div>
+      </section>
+
+      <section id="gallery">
+        <div class="empty" id="empty">
+          <p>No uploads yet. Add your first video to see it here.</p>
+        </div>
+        <div class="grid" id="grid" hidden></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Player Modal -->
+  <div class="player" id="player" role="dialog" aria-modal="true" aria-label="Video player">
+    <div class="box">
+      <header>
+        <button class="btn secondary" id="closePlayer" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6 6 18" stroke="#bbb" stroke-width="2" stroke-linecap="round"/></svg>
+          Close
+        </button>
+        <div class="grow" contenteditable="true" id="playerTitle" spellcheck="false"></div>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <button class="btn secondary" id="downloadBtn" title="Download video">Download</button>
+          <button class="btn" id="deleteBtn" title="Delete video">Delete</button>
+        </div>
+      </header>
+      <video id="playerVideo" controls playsinline></video>
+      <footer>
+        <div id="playerMeta" class="meta"></div>
+        <div class="meta">Tip: Rename by editing the title above • Changes auto‑save</div>
+      </footer>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+  (function(){
+    // --- Tiny IndexedDB helper ---
+    const DB_NAME = 'utube';
+    const DB_VER = 1;
+    const STORE = 'videos';
+    const supportsIDB = 'indexedDB' in window;
+
+    function openDB(){
+      return new Promise((resolve,reject)=>{
+        if(!supportsIDB){ reject(new Error('IndexedDB not supported')); return; }
+        const req = indexedDB.open(DB_NAME, DB_VER);
+        req.onupgradeneeded = (e)=>{
+          const db = e.target.result;
+          if(!db.objectStoreNames.contains(STORE)){
+            const os = db.createObjectStore(STORE, { keyPath:'id', autoIncrement:true });
+            os.createIndex('createdAt','createdAt');
+            os.createIndex('title','title');
+          }
+        };
+        req.onsuccess = (e)=> resolve(e.target.result);
+        req.onerror = ()=> reject(req.error);
+      });
+    }
+
+    function tx(db, mode='readonly'){ return db.transaction(STORE, mode).objectStore(STORE); }
+
+    async function addVideo(rec){ const db = await openDB(); return new Promise((res,rej)=>{ const r = tx(db,'readwrite').add(rec); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+    async function updateVideo(id, patch){ const db = await openDB(); return new Promise((res,rej)=>{ const store = tx(db,'readwrite'); const get = store.get(id); get.onsuccess = ()=>{ const val = Object.assign({}, get.result, patch); const put = store.put(val); put.onsuccess=()=>res(); put.onerror=()=>rej(put.error); }; get.onerror=()=>rej(get.error); }); }
+    async function deleteVideo(id){ const db = await openDB(); return new Promise((res,rej)=>{ const r = tx(db,'readwrite').delete(id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+    async function listVideos(){ const db = await openDB(); return new Promise((res,rej)=>{ const items=[]; const store = tx(db); const idx = store.index('createdAt'); const req = idx.openCursor(null, 'prev'); req.onsuccess = e=>{ const cur = e.target.result; if(cur){ items.push(cur.value); cur.continue(); } else { res(items); } }; req.onerror=()=>rej(req.error); }); }
+
+    // --- Utils ---
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const fmtBytes = n => n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(1)} KB`:n<1073741824?`${(n/1048576).toFixed(1)} MB`:`${(n/1073741824).toFixed(1)} GB`;
+    const fmtDur = s => { if(!isFinite(s)) return '—:—'; const m = Math.floor(s/60), sec = Math.round(s%60); const h = Math.floor(m/60), mm = m%60; return (h?`${h}:${String(mm).padStart(2,'0')}`:mm)+`:${String(sec).padStart(2,'0')}` };
+    const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+    const urls = new Set();
+    function makeURL(blob){ const u = URL.createObjectURL(blob); urls.add(u); return u; }
+    function cleanupURLs(){ for(const u of urls){ URL.revokeObjectURL(u); } urls.clear(); }
+
+    function toast(msg){ const wrap = $('#toasts'); const el = document.createElement('div'); el.className='toast'; el.textContent = msg; wrap.appendChild(el); setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(6px)'; setTimeout(()=>el.remove(),250); }, 2500); }
+
+    // --- Elements ---
+    const grid = $('#grid');
+    const empty = $('#empty');
+    const stats = $('#stats');
+    const player = $('#player');
+    const playerVideo = $('#playerVideo');
+    const playerTitle = $('#playerTitle');
+    const playerMeta = $('#playerMeta');
+    const fileInput = $('#fileInput');
+    const uploadBtn = $('#uploadBtn');
+    const pickBtn = $('#pickBtn');
+    const drop = $('#drop');
+    const q = $('#q');
+    const clearBtn = $('#clearBtn');
+
+    let ALL = []; // cache of video records
+    let FILTER = 'all';
+
+    // --- Rendering ---
+    function render(videos){
+      cleanupURLs();
+      grid.innerHTML = '';
+      if(!videos.length){ grid.hidden = true; empty.hidden = false; stats.textContent = `${ALL.length} videos`; return; }
+      grid.hidden = false; empty.hidden = true;
+      for(const v of videos){
+        const card = document.createElement('article'); card.className='card'; card.dataset.id = v.id;
+        const thumb = document.createElement('a'); thumb.href='#'; thumb.className='thumb'; thumb.title='Play';
+        if(v.thumbBlob){ const img = document.createElement('img'); img.alt='Thumbnail'; img.src = makeURL(v.thumbBlob); thumb.appendChild(img); }
+        else { const vid = document.createElement('video'); vid.muted=true; vid.src = makeURL(v.videoBlob); thumb.appendChild(vid); }
+        const dur = document.createElement('span'); dur.className='duration'; dur.textContent = fmtDur(v.duration||0); thumb.appendChild(dur);
+        const body = document.createElement('div'); body.className='body';
+        const title = document.createElement('div'); title.className='title'; title.textContent = v.title || 'Untitled';
+        const meta = document.createElement('div'); meta.className='meta'; meta.textContent = `${fmtBytes(v.size)} • ${new Date(v.createdAt).toLocaleString()}`;
+        body.appendChild(title); body.appendChild(meta);
+        card.appendChild(thumb); card.appendChild(body);
+        grid.appendChild(card);
+
+        // open player
+        thumb.addEventListener('click', (e)=>{ e.preventDefault(); openPlayer(v); });
+      }
+      stats.textContent = `${ALL.length} ${ALL.length===1?'video':'videos'}`;
+    }
+
+    function applyFilters(){
+      const term = q.value.trim().toLowerCase();
+      let items = ALL.slice();
+      if(term){ items = items.filter(v=> (v.title||'').toLowerCase().includes(term)); }
+      if(FILTER==='recent'){ items = items.slice(0,20); }
+      if(FILTER==='large'){ items = items.filter(v=> v.size>=100*1024*1024); }
+      if(FILTER==='short'){ items = items.filter(v=> (v.duration||0) && v.duration<=60); }
+      render(items);
+    }
+
+    // --- Player ---
+    let current = null;
+    function openPlayer(v){ current = v; player.classList.add('active'); playerVideo.src = makeURL(v.videoBlob); playerVideo.play().catch(()=>{});
+      playerTitle.textContent = v.title || 'Untitled';
+      playerMeta.textContent = `${fmtBytes(v.size)} • ${fmtDur(v.duration||0)} • ${v.type||'video'}`;
+    }
+    function closePlayer(){ player.classList.remove('active'); playerVideo.pause(); playerVideo.removeAttribute('src'); playerVideo.load(); current = null; }
+
+    $('#closePlayer').addEventListener('click', closePlayer);
+    player.addEventListener('click', e=>{ if(e.target===player) closePlayer(); });
+
+    $('#deleteBtn').addEventListener('click', async ()=>{
+      if(!current) return; const id = current.id; await deleteVideo(id); toast('Deleted'); closePlayer(); await refresh(); });
+
+    $('#downloadBtn').addEventListener('click', ()=>{
+      if(!current) return; const a = document.createElement('a'); a.href = makeURL(current.videoBlob); a.download = (current.title||'video') + (extFromType(current.type)||'.mp4'); document.body.appendChild(a); a.click(); a.remove(); });
+
+    playerTitle.addEventListener('input', async ()=>{ if(!current) return; const title = playerTitle.textContent.trim(); current.title = title; await updateVideo(current.id,{title}); applyFilters(); });
+
+    function extFromType(type){ if(!type) return ''; const map = { 'video/mp4':'.mp4','video/webm':'.webm','video/quicktime':'.mov','video/x-matroska':'.mkv','video/ogg':'.ogv' }; return map[type]||''; }
+
+    // --- Uploading ---
+    uploadBtn.addEventListener('click', ()=> fileInput.click());
+    pickBtn.addEventListener('click', ()=> fileInput.click());
+
+    fileInput.addEventListener('change', async (e)=>{
+      const files = Array.from(e.target.files||[]).filter(f=> f.type.startsWith('video/'));
+      if(!files.length){ toast('No videos selected'); return; }
+      await ingest(files);
+      fileInput.value = '';
+    });
+
+    // Drag & drop
+    ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); }));
+    drop.addEventListener('drop', async (e)=>{
+      const files = Array.from(e.dataTransfer.files||[]).filter(f=> f.type.startsWith('video/'));
+      if(!files.length){ toast('Only video files are accepted'); return; }
+      await ingest(files);
+    });
+
+    async function ingest(files){
+      if(!supportsIDB){ toast('This browser lacks IndexedDB; uploads won\'t persist.'); }
+      for(const f of files){
+        try{
+          const meta = await readMeta(f);
+          const rec = { title: basename(f.name), createdAt: Date.now(), size: f.size, type: f.type, duration: meta.duration, thumbBlob: meta.thumb, videoBlob: f };
+          await addVideo(rec);
+          toast(`Saved: ${rec.title}`);
+          // Slight pause helps UI remain responsive when many files
+          await sleep(30);
+        }catch(err){ console.error(err); toast(`Failed: ${f.name}`); }
+      }
+      await refresh();
+    }
+
+    function basename(name){ return name.replace(/\.[^.]+$/, ''); }
+
+    async function readMeta(file){
+      // Extract duration + thumbnail (first second or mid‑point)
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true; video.playsInline = true;
+      const url = URL.createObjectURL(file);
+      video.src = url;
+      await once(video, 'loadedmetadata');
+      const duration = isFinite(video.duration) ? video.duration : 0;
+      const target = Math.min(1, Math.max(0, duration/2));
+      try{ video.currentTime = target; await once(video, 'seeked'); }catch{ /* ignore */ }
+      const thumb = await capture(video).catch(()=>null);
+      URL.revokeObjectURL(url);
+      return { duration, thumb };
+    }
+
+    function once(el, ev){ return new Promise((res,rej)=>{ const onOk = ()=>{ cleanup(); res(); }; const onErr = ()=>{ cleanup(); rej(); }; const cleanup = ()=>{ el.removeEventListener(ev, onOk); el.removeEventListener('error', onErr); } ; el.addEventListener(ev, onOk, {once:true}); el.addEventListener('error', onErr, {once:true}); setTimeout(()=>{ cleanup(); res(); }, 1200); }); }
+
+    function capture(video){ return new Promise((res,rej)=>{ const c = document.createElement('canvas'); const w = 640, h = Math.round(640*9/16); c.width = w; c.height = h; const ctx = c.getContext('2d'); ctx.drawImage(video, 0, 0, w, h); c.toBlob(b=> b?res(b):rej(new Error('toBlob failed')), 'image/jpeg', .78); }); }
+
+    async function refresh(){ ALL = await listVideos(); applyFilters(); }
+
+    // Left nav filters
+    $$('.nav a').forEach(a=> a.addEventListener('click', (e)=>{ e.preventDefault(); $$('.nav a').forEach(n=>n.classList.remove('active')); a.classList.add('active'); FILTER = a.dataset.filter||'all'; applyFilters(); }));
+
+    // Search
+    q.addEventListener('input', applyFilters);
+    clearBtn.addEventListener('click', ()=>{ q.value=''; applyFilters(); });
+
+    // Export titles (demo utility)
+    $('#exportBtn').addEventListener('click', ()=>{
+      const lines = ALL.map(v=> v.title).join('\n');
+      const blob = new Blob([lines], {type:'text/plain'});
+      const a = document.createElement('a'); a.href = makeURL(blob); a.download = 'utube_titles.txt'; document.body.appendChild(a); a.click(); a.remove();
+    });
+
+    // Init
+    (async function init(){
+      if(!supportsIDB){ toast('⚠️ Browser does not support IndexedDB. Videos will not persist after reload.'); }
+      await refresh();
+    })();
+  })();
+  </script>
+</body>
+</html>

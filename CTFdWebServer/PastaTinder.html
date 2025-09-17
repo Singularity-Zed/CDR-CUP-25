@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SwiperNOswiper – We keep it PG‑13 GROWL</title>
+  <style>
+    :root{
+      --bg: #0f0f13;
+      --card: #151821;
+      --ink: #e8eaf0;
+      --muted: #a5acc6;
+      --brand: #ff3b6b;
+      --ok: #2dd4bf;
+      --no: #fb7185;
+      --pill: #23283a;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 600px at 90% -20%, #ff3b6b22, transparent 60%),
+        radial-gradient(1000px 600px at -10% 120%, #2dd4bf22, transparent 60%),
+        linear-gradient(180deg,#0d0f14,#0b0d12);
+      display:flex; flex-direction:column;
+    }
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:16px clamp(16px, 3vw, 28px); border-bottom:1px solid #23273a;
+      position:sticky; top:0; backdrop-filter: blur(6px);
+      background: linear-gradient(180deg,#0d0f14dd,#0b0d12aa 60%, transparent);
+      z-index:5;
+    }
+    .brand{display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.3px}
+    .logo{width:36px; height:36px; border-radius:10px; background: conic-gradient(from 210deg, var(--brand), #ffa1b6 40%, #7c3aed 70%, #2dd4bf);
+      box-shadow: 0 0 0 2px #ffffff10 inset, 0 10px 30px #ff3b6b33;}
+    .toggles{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+    .toggle{display:inline-flex; align-items:center; gap:8px; background:var(--pill); padding:8px 12px; border-radius:999px; border:1px solid #2a3046; font-size:.9rem; color:var(--muted)}
+    .toggle input{accent-color:var(--brand)}
+
+    main{max-width:1100px; margin:0 auto; padding:20px clamp(16px, 3vw, 28px) 40px; width:100%;}
+
+    .app{
+      display:grid; grid-template-columns: 1.2fr .8fr; gap:24px;
+    }
+    @media (max-width: 980px){ .app{grid-template-columns: 1fr;}}
+
+    .deck-wrap{position:relative; min-height:540px}
+
+    .card{
+      position:absolute; inset:0; margin:auto;
+      width:100%; max-width:620px; height:540px; border-radius:22px; overflow:hidden;
+      background:var(--card); border:1px solid #262b42;
+      box-shadow: 0 20px 60px #00000080, 0 0 0 1px #ffffff08 inset;
+      transform-origin: 50% 90%;
+      transition: transform .25s ease, opacity .25s ease, filter .25s ease;
+      display:grid; grid-template-rows: 1fr auto;
+    }
+    .card:not(.active){opacity:0; pointer-events:none; transform: scale(.98) translateY(10px)}
+    .card.active{opacity:1}
+
+    .photo{position:relative; overflow:hidden}
+    .photo img{width:100%; height:100%; object-fit:cover; display:block; filter:saturate(1.05)}
+    .badge{position:absolute; left:14px; bottom:14px; display:flex; gap:8px; align-items:center}
+    .chip{background:#0b0d1288; backdrop-filter: blur(6px); border:1px solid #ffffff22; color:#fff; padding:8px 12px; border-radius:999px; font-weight:600; box-shadow:0 6px 20px #00000066}
+    .spicy{background:#ff3b6bd1; border-color:#ff9bb2aa}
+
+    .info{padding:14px 16px 16px; display:flex; flex-direction:column; gap:10px}
+    .title{display:flex; align-items:baseline; gap:10px; font-weight:800; font-size:1.25rem}
+    .age{color:var(--muted); font-weight:700}
+    .bio{color:#c7cbe2; line-height:1.45}
+    .tags{display:flex; flex-wrap:wrap; gap:8px}
+    .tag{background:var(--pill); border:1px solid #303553; color:#b6bbd4; padding:6px 10px; border-radius:999px; font-size:.85rem}
+
+    .actions{display:flex; gap:14px; margin-top:14px}
+    .btn{
+      flex:1; display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:14px 16px; border-radius:16px; border:1px solid #2a3046; background:#171b27; color:#e6e9f6; font-weight:800; letter-spacing:.3px; cursor:pointer; user-select:none;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+    }
+    .btn:active{transform: translateY(1px)}
+    .btn.like{border-color:#2b7a70; background:#0f1719}
+    .btn.nope{border-color:#6b2132; background:#171015}
+    .btn svg{width:20px; height:20px}
+
+    /* Right column */
+    .sidebar{position:relative}
+    .panel{background: #121520; border:1px solid #262b42; border-radius:18px; padding:14px; box-shadow: 0 10px 40px #00000066}
+    .section-title{font-weight:800; letter-spacing:.3px; color:#d7dbf7; margin:6px 0 10px}
+    .statements{display:grid; grid-template-columns: 1fr; gap:10px; max-height:280px; overflow:auto; padding-right:6px}
+    .statement{background:var(--pill); border:1px solid #2e3451; padding:10px 12px; border-radius:12px; color:#cfd3ec; font-size:.95rem}
+
+    .gallery{margin-top:18px; display:grid; grid-template-columns: repeat(3,1fr); gap:8px}
+    @media (max-width:640px){ .gallery{grid-template-columns: repeat(2,1fr);} }
+    .gallery img{width:100%; aspect-ratio: 1/1; object-fit:cover; border-radius:12px; border:1px solid #222742}
+
+    .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:#0f141f; border:1px solid #2a3046; color:#dfe3ff; padding:12px 16px; border-radius:12px; box-shadow:0 10px 30px #00000088; opacity:0; pointer-events:none; transition: opacity .25s ease}
+    .toast.show{opacity:1}
+
+    .empty{display:grid; place-items:center; gap:14px; text-align:center; padding:22px; border:1px dashed #2f3451; border-radius:16px; color:#aab0cd}
+
+    /* Heart confetti */
+    .burst{position:absolute; pointer-events:none; inset:0; overflow:visible}
+    .heart{position:absolute; font-size:24px; animation: pop 700ms ease forwards}
+    @keyframes pop{0%{transform: translate(var(--x), var(--y)) scale(.2); opacity:0}
+      40%{opacity:1}
+      100%{transform: translate(calc(var(--x) * 1.6), calc(var(--y) * 1.6)) scale(1.1); opacity:0}}
+
+    footer{margin-top:20px; color:#95a0c5; font-size:.9rem}
+    footer a{color:#d0d6ff}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><div class="logo"></div><div>SWIPE <span style="color:var(--brand)">PG‑13</span></div></div>
+    <div class="toggles">
+      <label class="toggle"><input type="checkbox" id="darkToggle" checked> Dark mode</label>
+      <label class="toggle"><input type="checkbox" id="pgToggle" checked> PG‑13 filter</label>
+    </div>
+  </header>
+
+  <main>
+    <div class="app">
+      <section>
+        <div class="deck-wrap" id="deckWrap">
+          <!-- Cards injected here -->
+        </div>
+        <div class="actions">
+          <button class="btn nope" id="btnNope" aria-label="Nope">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            Nope
+          </button>
+          <button class="btn like" id="btnLike" aria-label="Like">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            Like
+          </button>
+        </div>
+
+        <div id="emptyState" class="empty" style="display:none; margin-top:16px">
+          <div style="font-weight:800; color:#d6daf2">You're all caught up 🎉</div>
+          <div>Refresh to reshuffle, or toggle the PG‑13 filter for more/less spice.</div>
+        </div>
+
+        <footer>
+          Keep it flirty, keep it respectful. All profiles are fictional 18+ characters. 
+          PG‑13 means: innuendo allowed; explicit content, nudity, and graphic language are not. Keep "Elegante!" 👀
+        </footer>
+      </section>
+
+      <aside class="sidebar">
+        <div class="panel">
+          <div class="section-title">Raunchy PG-13 one-liners of the day. GROWL!</div>
+          <div class="statements" id="statements"></div>
+        </div>
+        <div class="panel" style="margin-top:14px">
+          <div class="section-title">Photo wall</div>
+          <div class="gallery" id="gallery"></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" id="toast">Saved to Likes</div>
+
+  <script>
+    const PG13 = {
+      statements: [
+        "Certified flirtologist. Side effects may include blushing and giggles.",
+        "Let's keep it cute, not crude — mildly spicy, extra charming.",
+        "I'll bring the snacks, you bring the playlist. We'll call it 'research.'",
+        "I like my coffee how I like my flirting: bold, but not creepy.",
+        "Swipe right if you can out‑dad‑joke me. Bonus points for puns.",
+        "Great at parallel parking and mixed signals — let's fix one.",
+        "Gym? I thought you said 'brunch.' Let's be sore from laughing.",
+        "Warning: shameless compliment giver. Proceed to swoon.",
+        "Let's make good choices and slightly better stories.",
+        "Sapio‑curious and snack‑motivated. Impress me with your best fun fact.",
+        "Not a red flag connoisseur. Green flags only, please.",
+        "I’m into chemistry — the flirty, eye‑sparkle kind.",
+        "Pro at building pillow forts and tension (the wholesome kind).",
+        "Good at board games, terrible at being subtle.",
+        "Flirt like a gentleman, tease like a menace. PG‑13 only."
+      ]
+    };
+
+    const profiles = [
+      {name:'Ava', age:24, city:'Austin', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Ava.png',
+        bio:"Brunch athlete. Will judge your meme taste (gently).",
+        tags:['Brunch','Hiking','Retro games']},
+      {name:'Leo', age:27, city:'Chicago', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Leo.jpg',
+        bio:"Sarcasm fluent. Will trade playlists for secrets.",
+        tags:['Live music','Street food','Photography']},
+      {name:'Maya', age:25, city:'San Diego', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Maya.jpg',
+        bio:"Small‑talk escape artist. Big‑talk enthusiast.",
+        tags:['Beach runs','Bouldering','Sci‑fi']},
+      {name:'Zoe', age:22, city:'Seattle', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Zoe.jpg',
+        bio:"Flirty with a chance of chaos — forecast says sunny.",
+        tags:['Matcha','Indie films','Cats']},
+      {name:'Miles', age:29, city:'NYC', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Miles.jpg',
+        bio:"Can cook and will roast (lightly).",
+        tags:['Cooking','Comedy shows','Tennis']},
+      {name:'Jade', age:26, city:'Nashville', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Jade.jpg',
+        bio:"Sweet tooth with spicy banter.",
+        tags:['Baking','Vinyl','Road trips']},
+      {name:'Rowan', age:28, city:'Denver', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Rowan.jpg',
+        bio:"National park stan. Will bring snacks and sarcasm.",
+        tags:['Hiking','Star‑gazing','Coffee snob']},
+      {name:'Noa', age:23, city:'Phoenix', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Noa.jpg',
+        bio:"Flirt responsibly. Hydrate excessively.",
+        tags:['Thrifting','Ramen','Karaoke']},
+      {name:'Aria', age:30, city:'Boston', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Aria.png',
+        bio:"Team 'one more episode.'",
+        tags:['Podcasts','Pilates','City walks']},
+      {name:'Kai', age:24, city:'Portland', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Kai.jpg',
+        bio:"Plant parent with chaotic neutral energy.",
+        tags:['Plants','Thrift stores','Latte art']},
+      {name:'Siena', age:27, city:'Miami', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Siena.jpg',
+        bio:"Sunset chaser. Compliment collector.",
+        tags:['Beach','Salsa','Mocktails']},
+      {name:'Owen', age:31, city:'Dallas', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Owen.jpg',
+        bio:"Walks fast. Falls slow.",
+        tags:['BBQ tours','Arcades','Pickleball']},
+      {name:'Luna', age:22, city:'LA', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Luna.jpg',
+        bio:"Live, love and be happy.",
+        tags:['Museums','Pilates','Sushi']},
+      {name:'Sexy Pesto', age:99, city:'Near You', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/SteganausorusRex.jpeg',
+        bio:"Age is but a number, there are so much more to my pictures, are you willing to find out, GROWL!. Shameless eye contact and dad‑joke appreciation. I like my women like my pasta, ELEGANTE!👀",
+        tags:['Museums','Pilates','Sushi']},
+      {name:'Max', age:35, city:'Boston', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Max.png',
+        bio:"Will never forget to design a coin",
+        tags:['Cargo Shorts','Leg Day','Selfies']},
+      {name:'Nina', age:28, city:'Philly', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Nina.jpg',
+        bio:"Flirting with hobbies since 2018.",
+        tags:['DIY','Concerts','Board games']},
+      {name:'Jett', age:25, city:'Detroit', 
+        img:'file:///C:/CDR-CUP-25/LocalBackup/Resources/Pictures/PastaTinder/Jett.jpg',
+        bio:"Low‑effort cool, high‑effort dates.",
+        tags:['Skate','Coffee','Indie rock']}
+    ];
+
+    const spicyBubbles = [
+      "Behave? I thought we said 'barely.'",
+      "Certified menace to boring Saturdays.",
+      "Caution: flirty by default.",
+      "Eyes say 'angel,' playlist says 'trouble.'",
+      "We can be wholesome — with a wink."
+    ];
+
+    let index = 0;
+    const likes = [];
+    const deckWrap = document.getElementById('deckWrap');
+    const statementsEl = document.getElementById('statements');
+    const galleryEl = document.getElementById('gallery');
+    const toast = document.getElementById('toast');
+    const btnLike = document.getElementById('btnLike');
+    const btnNope = document.getElementById('btnNope');
+    const pgToggle = document.getElementById('pgToggle');
+
+    function renderStatements(){
+      statementsEl.innerHTML = '';
+      PG13.statements.forEach(s=>{
+        const div = document.createElement('div');
+        div.className = 'statement';
+        div.textContent = s;
+        statementsEl.appendChild(div);
+      })
+    }
+
+    function buildCard(p){
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="photo">
+          <img loading="lazy" alt="${p.name} in ${p.city}" src="${p.img}" />
+          <div class="badge">
+            <span class="chip">${p.city}</span>
+            <span class="chip spicy">${spicyBubbles[Math.floor(Math.random()*spicyBubbles.length)]}</span>
+          </div>
+          <div class="burst"></div>
+        </div>
+        <div class="info">
+          <div class="title">${p.name} <span class="age">${p.age}</span></div>
+          <div class="bio">${p.bio}</div>
+          <div class="tags">${p.tags.map(t=>`<span class='tag'>${t}</span>`).join('')}</div>
+        </div>`;
+      return card;
+    }
+
+    function renderDeck(){
+      deckWrap.innerHTML = '';
+      const next = profiles[index];
+      if(!next){
+        document.getElementById('emptyState').style.display = 'grid';
+        return;
+      }
+      const card = buildCard(next);
+      card.classList.add('active');
+      deckWrap.appendChild(card);
+    }
+
+    function burstHearts(container){
+      for(let i=0;i<10;i++){
+        const h = document.createElement('div');
+        h.className = 'heart';
+        h.textContent = i%2? '💖':'💘';
+        h.style.setProperty('--x', (Math.random()*120-60)+'px');
+        h.style.setProperty('--y', (Math.random()*-120)+'px');
+        h.style.left = (50 + (Math.random()*20-10)) + '%';
+        h.style.top = (65 + (Math.random()*10-5)) + '%';
+        container.appendChild(h);
+        setTimeout(()=> h.remove(), 720);
+      }
+    }
+
+    function like(){
+      const p = profiles[index];
+      likes.push(p);
+      showToast('Saved to Likes');
+      const burst = deckWrap.querySelector('.burst');
+      burstHearts(burst);
+      advance();
+    }
+
+    function nope(){
+      advance();
+    }
+
+    function advance(){
+      index++;
+      renderDeck();
+    }
+
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(()=> toast.classList.remove('show'), 1300);
+    }
+
+    function buildGallery(){
+      galleryEl.innerHTML = '';
+      const seeds = ['alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel','india','juliet','kilo','lima'];
+      seeds.forEach(s=>{
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.alt = 'Gallery photo';
+        img.src = `https://picsum.photos/seed/${s}/600/600`;
+        galleryEl.appendChild(img);
+      })
+    }
+
+    // PG‑13 filter: hide the spicy bubble if turned on
+    function applyPG(){
+      const showPG = pgToggle.checked;
+      document.querySelectorAll('.chip.spicy').forEach(el=>{
+        el.style.display = showPG ? 'inline-flex' : 'none';
+      })
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'ArrowRight') like();
+      if(e.key === 'ArrowLeft') nope();
+    });
+
+    btnLike.addEventListener('click', like);
+    btnNope.addEventListener('click', nope);
+    pgToggle.addEventListener('change', applyPG);
+
+    // initial render
+    renderStatements();
+    buildGallery();
+    renderDeck();
+    applyPG();
+  </script>
+</body>
+</html>

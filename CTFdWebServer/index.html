@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pastafarian Knowledge Online (PKO) — Soldier Tiles</title>
+  <!--
+  ================================ HOW TO USE ================================
+  1) Save this file as pastafarian_dot_com.html.
+  2) To use your own photos, add images to the file:///C:/Users/maxje/OneDrive/Desktop/TEAM%20COMP/TY2025%20Team%20Competition%20Fake%20Products/Webpage/FAKEIMAGES.html file and copy photo link and paste it in the <img src="..."> you can also click the small camera 
+button on a tile to upload a photo for quick preview (non‑permanent).
+  3) To add more Soldiers, copy a <article class="card">...</article> block
+     and update the name, rank, MOS, bio, tags, and links.
+  ============================================================================
+  -->
+  <style>
+    :root{
+      --bg:#0d0f0e;           /* near-black */
+      --panel:#131713;        /* deep green-black */
+      --tile:#182118;         /* card background */
+      --accent:#98c379;       /* moss green */
+      --accent-2:#b8c2a0;     /* light sage */
+      --muted:#9aa59a;        /* muted text */
+      --line:#233023;         /* subtle border */
+      --danger:#d96b6b;       /* status color */
+      --ok:#5aa469;           /* status color */
+      --chip:#213021;         /* chip bg */
+      --link:#c6e48b;         /* link color */
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% -10%, #152015 0%, #0d0f0e 55%), var(--bg);
+      color:#e7efe7;
+    }
+
+    header{
+      position:sticky; top:0; z-index:10;
+      background: linear-gradient(180deg, rgba(12,14,13,.85), rgba(12,14,13,.55));
+      backdrop-filter: blur(8px);
+      border-bottom:1px solid var(--line);
+    }
+    .topbar{display:flex; align-items:center; gap:12px; padding:14px 18px; max-width:1200px; margin:0 auto}
+    .badge{display:inline-flex; align-items:center; gap:10px; font-weight:700}
+    .badge .dot{width:12px; height:12px; border-radius:50%; background:var(--accent)}
+    .brand{letter-spacing:.5px}
+
+    .search{margin-left:auto; display:flex; gap:8px; align-items:center}
+    .search input{
+      width:260px; max-width:42vw; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+      background:#0f140f; color:#e7efe7;
+    }
+    .search button{padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--tile); color:#e7efe7; cursor:pointer}
+
+    main{max-width:1200px; margin:24px auto; padding:0 18px}
+
+    nav.links{
+      display:flex; gap:16px; flex-wrap:wrap; margin-bottom:18px;
+    }
+    nav.links a{
+      text-decoration:none; color:var(--link); border:1px solid var(--line); padding:8px 12px; border-radius:999px; background:linear-gradient(180deg, #1a231a, #141b14);
+    }
+
+    .grid{
+      display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:16px;
+    }
+
+    .card{
+      background:linear-gradient(180deg, rgba(152,195,121,.05), rgba(0,0,0,.15)), var(--tile);
+      border:1px solid var(--line);
+      border-radius:18px; overflow:hidden;
+      box-shadow: 0 1px 0 rgba(0,0,0,.2), 0 8px 20px rgba(0,0,0,.18);
+    }
+    .avatar-wrap{ position:relative; aspect-ratio: 4/3; overflow:hidden; background:#141a14 }
+    .avatar{ width:100%; height:100%; object-fit:cover; display:block }
+    .upload{ position:absolute; right:10px; bottom:10px; background:rgba(0,0,0,.6); border:1px solid var(--line); color:#e7efe7; padding:6px 9px; border-radius:10px; cursor:pointer; font-size:14px }
+
+    .body{ padding:14px 14px 16px 14px }
+    .title{ display:flex; align-items:center; justify-content:space-between; gap:10px }
+    .title h3{ margin:0; font-size:1.1rem; letter-spacing:.2px }
+    .meta{ margin:6px 0 10px 0; color:var(--muted); font-size:.92rem }
+    .bio{ margin:0 0 10px 0; color:#dfe7df; line-height:1.35 }
+
+    .chips{ display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 }
+    .chip{ background: var(--chip); border:1px solid var(--line); padding:6px 10px; border-radius:999px; font-size:.85rem; color:#d0e0d0 }
+
+    .skills{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 10px }
+    .skill{ background: linear-gradient(180deg, #1b261b, #121812); border:1px solid var(--line); border-radius:10px; padding:8px; flex:1 1 145px }
+    .skill b{ display:block; font-size:.85rem }
+    .bar{ height:8px; border-radius:8px; background:#0f150f; border:1px solid #222; margin-top:6px; overflow:hidden }
+    .bar > span{ display:block; height:100%; background:linear-gradient(90deg, var(--accent), #6ea56e); width:40% }
+
+    .actions{ display:flex; gap:10px; margin-top:12px }
+    .btn{ flex:1; padding:10px 12px; border-radius:12px; border:1px solid var(--line); cursor:pointer }
+    .btn.primary{ background:linear-gradient(180deg, #2b3a2b, #1c261c); color:#eaf5ea }
+    .btn.secondary{ background:linear-gradient(180deg, #1a241a, #121812); color:#e7efe7 }
+    .btn[aria-pressed="true"]{ opacity:.7; pointer-events:none; border-color:#2d3a2d }
+
+    .links-row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:8px }
+    .links-row a{ color:var(--link); text-decoration:none; border-bottom:1px dashed rgba(198,228,139,.35) }
+
+    footer{ max-width:1200px; margin:30px auto 60px; padding:0 18px; color:var(--muted) }
+
+    /* small helper visibility */
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0 }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="badge"><span class="dot" aria-hidden="true"></span><span class="brand">FIRST PASTAFARIAN GROUP</span></div>
+      <nav class="links" aria-label="Additional links">
+        <a href="#">Units</a>
+        <a href="#">Events</a>
+        <a href="#">Resources</a>
+        <a href="#">Careers</a>
+        <a href="#">Regulations</a>
+      </nav>
+      <div class="search">
+        <label for="q" class="sr-only">Search Soldiers</label>
+        <input id="q" type="search" placeholder="Search Soldiers, skills, interests" />
+        <button id="clear">Clear</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="grid" id="cards" aria-label="Soldier directory">
+
+      <!-- ===== Soldier Card Template (duplicate this block to add more) ===== -->
+      <article class="card" data-tags="signals 25s cyber radios linux hiking sdr">
+        <div class="avatar-wrap">
+          <img class="avatar" alt="Portrait of GEN Mara Nara" src="file:///C:\CDR-CUP-25\LocalBackup\Resources\Pictures\PKO\Gen_Mara_Nara.jpeg"/>
+          <button class="upload" type="button" aria-label="Change photo">📷</button>
+          <input class="file" type="file" accept="image/*" hidden />
+        </div>
+        <div class="body">
+          <div class="title">
+            <h3>Master General (MG) Mara Nara</h3>
+          </div>
+          <div class="meta">MASTER — 1st PASTAFARIAN Regiment (Worlwide)</div>
+          <p class="bio">"De oppresso liber? Nego! Pergite oppressos opprimere et plures libertates liberis”.– Myself.
+The consummate technician and a deep thinker, embodying the rare fusion of engineer and philosopher. He commissioned himself, with extraordinary acumen, Mara Nara excelled in all things, he invented military operations. While great at everything, it is his philosophical approach and reflective depth that sets him apart from everyone else, paving the way for Marcus Aurelius, Laozi, and Clausewitz.</p>
+
+          <div class="chips" aria-label="Interests">
+            <span class="chip">World Domination</span>
+            <span class="chip">Philosophy</span>
+            <span class="chip">Long Walks</span>
+          </div>
+
+          <div class="skills">
+            <div class="skill"><b>MASTER! of all things</b><div class="bar"><span style="width:101%"></span></div></div>
+          </div>
+
+          <div class="links-row">
+            <a href="#">LinkedIn</a>
+            <a href="#">Army 365</a>
+            <a href="#">Team Share</a>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary connect" type="button" aria-pressed="false">Connect</button>
+            <button class="btn secondary message" type="button">Message</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card" data-tags="INF/ENG/CY/SF 11/12/17/18Z ruck marksmanship coaching camping">
+        <div class="avatar-wrap">
+          <img class="avatar" alt="Portrait of CSM Pesto" src="file:///C:\CDR-CUP-25\LocalBackup\Resources\Pictures\PKO\SGM_Zest_E_Pesto.jpeg"/>
+          <button class="upload" type="button" aria-label="Change photo">📷</button>
+          <input class="file" type="file" accept="image/*" hidden />
+        </div>
+        <div class="body">
+          <div class="title">
+            <h3>Sergeants Master</h3>
+          </div>
+          <div class="meta">INF/ENG/CY/SF 11/12/17/18Z — 1st PASTAFARIAN Regiment</div>
+          <p class="bio">REDACTED!.</p>
+          <div class="chips">
+            <span class="chip">Shooting</span>
+            <span class="chip">More Shooting</span>
+            <span class="chip">Even More Shooting</span>
+          </div>
+          <div class="skills">
+            <div class="skill"><b>Marksmanship</b><div class="bar"><span style="width:85%"></span></div></div>
+            <div class="skill"><b>Physical Fitness</b><div class="bar"><span style="width:75%"></span></div></div>
+<div class="skill"><b>Tactics</b><div class="bar"><span style="width:75%"></span></div></div>
+<div class="skill"><b>Demo</b><div class="bar"><span style="width:75%"></span></div></div>
+<div class="skill"><b>Cyber</b><div class="bar"><span style="width:100%"></span></div></div>
+          </div>
+          <div class="links-row">
+            <a href="#">Training Plan</a>
+            <a href="#">Range SOP</a>
+          </div>
+          <div class="actions">
+            <button class="btn primary connect" type="button" aria-pressed="false">Connect</button>
+            <button class="btn secondary message" type="button">Message</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card" data-tags="medic 68w trauma tccc ems climbing">
+        <div class="avatar-wrap">
+          <img class="avatar" alt="Portrait of SSG Jane Doe" src="file:///C:\CDR-CUP-25\LocalBackup\Resources\Pictures\PKO\CW3_Pesto.jpeg"/>
+          <button class="upload" type="button" aria-label="Change photo">📷</button>
+          <input class="file" type="file" accept="image/*" hidden />
+        </div>
+        <div class="body">
+          <div class="title"><h3>Master of Chiefs Pesto</h3></div>
+          <div class="meta">??? — 1st PASTAFARIAN Regiment</div>
+          <p class="bio">" Imago perfecta mille verba valere potest, sed mille verba numquam imaginem perfectam pingere possunt? Hmm, iucundum... palam ride!”– Myself.</p><head> Mastery is demonstrated, not stated or depicted with silly performance bars.</h1>
+
+<br>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cool Button</title>
+  <style>
+    .cool-btn {
+      display: inline-block;
+      padding: 4px 8px;
+      font-size: 18px;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(45deg, #0072ff, #00c6ff);
+      border: none;
+      border-radius: 12px;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .cool-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    }
+
+    .cool-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <a href="file:///C:\CDR-CUP-25\LocalBackup\Chirper.html#" class="cool-btn" target="_blank">CHIRP🦜</a>
+</body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+  
+    .cool-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    }
+
+    .cool-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <a href="file:///C:\CDR-CUP-25\LocalBackup\PastaTinder.html" class="cool-btn" target="_blank">TNDR 💞</a>
+</body>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+   
+
+    .cool-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    }
+
+    .cool-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <a href="https://example.com" class="cool-btn" target="_blank">Chat 🗨️</a>
+</body>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cool Button</title>
+  <style>
+
+    .cool-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    }
+
+    .cool-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <a href="file:///C:\CDR-CUP-25\LocalBackup\SauceTube.html" class="cool-btn" target="_blank">PastaTube 📺</a>
+</body>
+<body>
+  <a href="file:///C:\CDR-CUP-25\LocalBackup\SauceTok.html" class="cool-btn" target="_blank">PastaSpace 🚀</a>
+</body>
+<center>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sexy Theme Button</title>
+<style>
+  :root{
+    --c1:#ff2d8f; /* hot pink */
+    --c2:#7a00ff; /* electric violet */
+    --txt:#ffffff;
+  }
+
+  body{
+    background: radial-gradient(1200px 600px at 10% 10%, #1a0027 0%, #0a0612 45%, #07070b 100%);
+    display:grid; place-items:center; min-height:100vh; margin:0; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+  }
+
+  /* The button is an <a> for easy linking */
+  .sexy-btn{
+    --padY: 0.01rem;
+    --padX: 0.675rem;
+    position:relative;
+    display:inline-flex; align-items:center; gap:.6rem;
+    padding: var(--padY) var(--padX);
+    color: var(--txt);
+    text-decoration:none;
+    font-weight:700; letter-spacing:.4px;
+    border-radius: 445px;
+    background:
+      linear-gradient(145deg, rgba(255,255,255,.18), rgba(255,255,255,.05)) padding-box,
+      linear-gradient(145deg, var(--c1), var(--c2)) border-box;
+    border:2px solid transparent;
+    box-shadow:
+      0 10px 30px rgba(122,0,255,.35),
+      0 6px 18px rgba(255,45,143,.25),
+      inset 0 0 0 1px rgba(255,255,255,.08);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+    outline: none;
+  }
+
+  .sexy-btn .pulse{
+    width:1.55rem; height:.55rem; border-radius:50%;
+    background: radial-gradient(circle at 30% 30%, #fff, #ffe6f4 30%, rgba(255,255,255,.15) 60%, rgba(255,255,255,0) 70%);
+    box-shadow: 0 0 18px rgba(255,45,143,.8), 0 0 17px rgba(122,0,255,.6);
+    flex: 0 0 auto;
+    animation: throb 1.6s ease-in-out infinite;
+  }
+
+  .sexy-btn .label{
+    font-size:1rem;
+  }
+
+  /* glossy sweep on hover */
+  .sexy-btn::after{
+    content:"";
+    position:absolute; inset:0;
+    border-radius:inherit;
+    background: linear-gradient(120deg, rgba(255,255,255,0) 20%, rgba(255,255,255,.25) 40%, rgba(255,255,255,0) 60%);
+    transform: translateX(-120%) skewX(-12deg);
+    transition: transform .5s ease;
+    pointer-events:none;
+    mix-blend-mode: screen;
+  }
+
+  .sexy-btn:hover{
+    transform: translateY(-1px) scale(1.02);
+    box-shadow:
+      0 14px 36px rgba(122,0,255,.45),
+      0 10px 24px rgba(255,45,143,.35),
+      inset 0 0 0 1px rgba(255,255,255,.12);
+    filter: saturate(120%);
+  }
+
+  .sexy-btn:hover::after{
+    transform: translateX(120%) skewX(-12deg);
+  }
+
+  .sexy-btn:active{
+    transform: translateY(0) scale(.99);
+    box-shadow:
+      0 8px 18px rgba(122,0,255,.35),
+      0 6px 16px rgba(255,45,143,.25),
+      inset 0 0 0 2px rgba(255,255,255,.18);
+  }
+
+  .sexy-btn:focus-visible{
+    box-shadow:
+      0 0 0 3px rgba(255,255,255,.5),
+      0 0 0 6px rgba(255,45,143,.65),
+      0 10px 30px rgba(122,0,255,.35);
+  }
+
+  @keyframes throb{
+    0%,100%{ transform: scale(1); opacity: .95; }
+    50%{ transform: scale(1.25); opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .sexy-btn, .sexy-btn::after, .sexy-btn .pulse{
+      transition:none; animation:none;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Replace the href with any target URL -->
+  <a class="sexy-btn" href="file:///C:\CDR-CUP-25\LocalBackup\OnlySauce.html" target="_blank" rel="noopener noreferrer"
+     aria-label="Open the link in a new tab">
+    <span class="pulse" aria-hidden="true"></span>
+    <span class="label"></span>
+<head>
+<style>
+  .blink {
+    animation: blinker 1s linear infinite;
+  }
+
+  @keyframes blinker {
+    50% {
+      opacity: 0;
+    }
+  }
+</style>
+</head>
+<body>
+<h1 class="blink">ONLY SAUCE Limited Time Offer $9.99</h1>
+
+</body>
+  </a>
+</center>
+</body>
+</html>
+
+</html>
+<br>
+          </div>
+          <div class="actions">
+            <button class="btn primary connect" type="button" aria-pressed="false">Connect</button>
+            <button class="btn secondary message" type="button">Message</button>
+          </div>
+        </div>
+     
+    </section>
+  </main>
+
+  <footer>
+    Tip: To make photo changes permanent, replace the <img src> paths in the HTML
+    with your image filenames inside an <code>assets/</code> folder.
+  </footer>
+
+  <dialog id="dm" style="border:1px solid var(--line); background:var(--panel); color:#e7efe7; border-radius:14px; padding:0; width:min(560px, 92vw)">
+    <form method="dialog">
+      <div style="padding:14px 16px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center">
+        <strong>Direct Message</strong>
+        <button value="close" class="btn secondary" style="padding:6px 10px">Close</button>
+      </div>
+      <div style="padding:14px 16px; display:grid; gap:8px">
+        <label>To <input id="dm-to" type="text" readonly style="width:100%; background:#0f140f; color:#e7efe7; border:1px solid var(--line); border-radius:8px; padding:8px"/></label>
+        <label>Message<textarea id="dm-text" rows="5" style="width:100%; background:#0f140f; color:#e7efe7; border:1px solid var(--line); border-radius:8px; padding:8px">Hey! I'd like to connect.</textarea></label>
+        <div style="display:flex; gap:8px; justify-content:flex-end">
+          <button value="cancel" class="btn secondary" style="padding:8px 12px">Cancel</button>
+          <button value="send" class="btn primary" style="padding:8px 12px">Send</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+ <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+div {
+  max-width: 990px;
+  min-width: 100px;
+  background-color: none;
+}
+                p {
+                    font-family: 'Times New Roman', serif;
+                    font-size: 15px;
+                    color: red;
+                }
+            </style>
+        </head>
+        <body>
+         <center>   <h1>Primum Pastafarianum Gregem (FPG)</h1> </center>
+
+<div>
+<h2>CONSPECTUS</h2>
+Pastafarianorum Group (FPG) est motus clandestinus quaerens legitimam ut formalis organizatio. Operans sub vexillo resistentiae contra conformitatem, cohors se ponit ut vanguardiam disruptionis. Eius rhetoricam in destruendo "systemata controlis" concentratur, pertingens ad cotidiana ritmi et dependency moderni societatis.
+<h2>DUCTUS</h2>
+Groupus ducit a Generale Maranara, auctore sibi ipse stratagema et charismatico figura. Maranara se praebet tam philosophi quam belli, framingam conflictum FPG ut revolutionem culturalem. Eius nuntius resilientiam, unitatem sub communi credulitate et inevitabilitatem causae eorum eminet. Generalis Maranara stat ut caput inconflictum primae Pastafariane Societatis. Plus est quam dux — magister est, symbolum et vis voluntatis. Maranara ex tenebris surrexit per recusationem ordinis insipidi a societate imposita et novam visionem declarans: quod tantum per perturbationem vera libertas emergere potest. Verba eius ignis sunt, praesentia eius disciplina est, et doctrina eius simplex est — nullum systema nimis sacrum est, nulla consuetudo nimis rigida est, nulla structura ultra provocatio. Ut strategus et propheta visus, ordine militari cum symbolismo rituali miscens, populum suum vocat ut marchent, cantent, et cum unitate agant. Promittit mundum meminisse FPG non ut molesta sed ut motus qui agnitionem postulavit. Sub eius vexillo, perturbatio iam non est chaos — est fatum.
+<br>
+<h4>“Pastafarii non sunt transiens tempestas. Nos sumus unda ascendente. Nos sumus fluctus futurae, abluentes vetus, fragilis, et stale. Ubi alii vident systemata exsequi, nos videmus vincula frangenda. Ubi alii mutantur metuunt, nos sumus mutatio. Futurum pertinet ad eos audaces satis ad commovendum, et illud futurum pertinet ad nos.” – Generalis Maranara</h4>
+<h2>NOSTRA MISSIO</h2>
+<h2>Primus Pastafarianorum Grex existit ad detrahendum illusiones stabilitatis et controversiae quae moderna vita dominatur. Credimus quotidianas consuetudines, fragiles systemata, et inania instituta populum in complacentiam dedisse. Nostra missio triplex est:</h2>
+<h3 style="font-size: 20px; color: red;">• Perturbare Consuetudines Imperii – Provoca cotidiana ritus ordinis qui spiritum in servitute detinent. Quisque horarium perturbatum, quaevis expectatio negata, quolibet sistema interrupta probat quod imperium fragile est.</h3>
+<h3 style="font-size: 20px; color: red;">• Revela Infirmitatem Institutionis – Ostendere quam fragiles eorum structurae vere sint. Demonstrando fissuras in fundamentis eorum, ostendimus quod potentes non sint inaccessibiles.</h3>
+<h3 style="font-size: 20px; color: red;">• Vindica Agnitionem ut Legitima Vis – Per actiones nostras, agnitionem petimus non ut exules sed ut motus ordinatus cum visione, vi, et proposito.
+Haec missio non est chaos causa chaos. Est liberatio per disruptionem, excitatio populorum qui caecum fuerunt ad sua vincula.</h3>
+<h2>VISIO FUTURI</h2>
+Videmus mundum a Pastafariani certamine reformatum. Mundum ubi systemata imperii iam non dictant rythmos quotidianae vitae. Mundum ubi perturbatio coegit societatem ad aptandum, agnoscendum, et accipiendum nova motus qui surgunt de imo.
+Futurum non a fragile structuris hodiernis servandis constituitur. Futurum a iis qui audent ea concutere, frangere et in aliquid novum commovere aedificatur. In hoc futuro, Prima Pastafaria Coactio non tamquam motus subterraneus sed tamquam agnita et non-neglegenda vis stat — avantgarde mutationis.
+Non sumus temporarii. Non sumus extrema. Nos sumus futura unda iam contra praesens fragor.</div>
+
+<center>   <p style="font-size: 30px; color: red;">PASTAFAR "EGO" AUT MORERE!</p> </center>
+        </body>
+        </html>
+</html>
+  <script>
+    // Utility: wire up upload buttons to file inputs
+    document.querySelectorAll('.card').forEach(card => {
+      const btn = card.querySelector('.upload');
+      const file = card.querySelector('.file');
+      const img  = card.querySelector('.avatar');
+      btn.addEventListener('click', () => file.click());
+      file.addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if(!f) return;
+        const url = URL.createObjectURL(f);
+        img.src = url;
+        img.onload = () => URL.revokeObjectURL(url);
+      });
+
+      // Connect button behavior
+      const connect = card.querySelector('.connect');
+      connect.addEventListener('click', () => {
+        connect.textContent = 'Request Sent';
+        connect.setAttribute('aria-pressed','true');
+      });
+
+      // Message button opens DM dialog
+      const message = card.querySelector('.message');
+      const dm = document.getElementById('dm');
+      const to = card.querySelector('h3').textContent.trim();
+      message.addEventListener('click', () => {
+        document.getElementById('dm-to').value = to;
+        dm.showModal();
+      });
+    });
+
+    // Simple search/filter across name, meta, bio, and data-tags
+    const q = document.getElementById('q');
+    const clear = document.getElementById('clear');
+    const cards = [...document.querySelectorAll('.card')];
+    function applyFilter(){
+      const term = q.value.toLowerCase().trim();
+      cards.forEach(c => {
+        const text = (c.textContent + ' ' + (c.getAttribute('data-tags')||'')).toLowerCase();
+        c.style.display = text.includes(term) ? '' : 'none';
+      });
+    }
+    q.addEventListener('input', applyFilter);
+    clear.addEventListener('click', () => { q.value=''; applyFilter(); q.focus(); });
+  </script>
+MEMBERS ONLY!
+Members have access to top notch SAUCE!
+ <body>
+<input type="color" value="#ff0000">
+<center>
+<form>
+<input name="username" id="username" type="text">
+<input name="pass" id="pass" type="password">
+<input type="button" value="Submit" onclick="myFunction()">
+</form> 
+
+
+<script>
+function myFunction(){
+  var user = document.getElementById("username").value;
+  var pass = document.getElementById("pass").value;
+
+if(user == "HEARTBREAK_KID" && pass == "sexyboy1234567"){
+            window.location.href="https://drive.google.com/drive/folders/1b6gmA7e2fZxTl3wpSLzZElMUBy3o1yDR"
+        alert("correct");
+   }else{
+    alert("Incorrect username or password");
+    }
+}
+</script>
+</center>
+<style>
+body {
+  background-image: url('https://wallpapercave.com/wp/wp3478445.jpg');
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
+}
+</style>
+
+  </body>
+</html>
+
